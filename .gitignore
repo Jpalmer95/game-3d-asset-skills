@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+assets/
+images/
+images_masked/
+working/

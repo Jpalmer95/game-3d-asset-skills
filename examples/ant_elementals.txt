@@ -1,0 +1,13 @@
+# 3D Pipeline — Ant Elementals (example batch)
+# Format: one prompt per line, order matches sorted image filenames (01_, 02_, ...)
+# Style anchors kept consistent: full body, T-pose-ish, centered, dark background, fantasy game asset
+fire ant warrior, glowing ember carapace, magma cracks between armor plates, full body T-pose front view, centered with margin, fantasy game asset, dark background
+ice ant scout, translucent frost-blue exoskeleton, crystal shard spines, full body T-pose front view, centered with margin, fantasy game asset, dark background
+lightning ant skirmisher, electric yellow-black shell, crackling arc antennae, full body T-pose front view, centered with margin, fantasy game asset, dark background
+venom ant assassin, glossy green-black chitin, dripping stinger, slender limbs, full body T-pose front view, centered with margin, fantasy game asset, dark background
+stone ant guardian, granite-plated bulky body, mossy cracks, heavy forelegs, full body T-pose front view, centered with margin, fantasy game asset, dark background
+shadow ant rogue, matte black smoky body, faint violet runes, full body T-pose front view, centered with margin, fantasy game asset, dark background
+water ant mystic, flowing aqua carapace, bubble sacs on thorax, full body T-pose front view, centered with margin, fantasy game asset, dark background
+giant ant queen boss, regal golden crown-like crest, swollen abdomen, ornate armor, full body front view, centered with margin, fantasy game asset, dark background
+tiny sprite ant swarmling, miniature cute worker, leaf backpack, oversized eyes, full body T-pose front view, centered with margin, fantasy game asset, dark background
+lava ant siege breaker, molten rock fists, volcanic vent shoulders, massive build, full body front view, centered with margin, fantasy game asset, dark background
