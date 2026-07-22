@@ -22,12 +22,14 @@ def gate_alpha_mask(path, min_alpha_coverage=0.05, max_alpha_coverage=0.98):
         a = im.getchannel("A")
         hist = a.histogram()
         total = im.width * im.height
-        opaque = sum(hist[250:]) / total
-        if opaque < min_alpha_coverage:
-            return False, f"subject coverage {opaque:.1%} too low — bad mask or empty image?"
-        if opaque > max_alpha_coverage:
-            return False, f"opaque coverage {opaque:.1%} — image is NOT alpha-masked (would bake background into 3D)"
-        return True, f"alpha mask ok ({opaque:.0%} subject coverage)"
+        # count pixels above half-alpha as subject: rembg/u2net produces
+        # semi-transparent masks where little is fully opaque
+        subject = sum(hist[128:]) / total
+        if subject < min_alpha_coverage:
+            return False, f"subject coverage {subject:.1%} too low — bad mask or empty image?"
+        if subject > max_alpha_coverage:
+            return False, f"opaque coverage {subject:.1%} — image is NOT alpha-masked (would bake background into 3D)"
+        return True, f"alpha mask ok ({subject:.0%} subject coverage)"
     except Exception as e:
         return False, f"alpha gate error: {e}"
 
@@ -90,9 +92,10 @@ def gate_glb_rig(path, min_bones=5):
 
 ENGINE_PRESETS = {
     # target: (decimation, texture_size)
-    "godot-mobile": (30000, 1024),
-    "godot": (80000, 2048),
-    "unity": (80000, 2048),
+    # NOTE: TRELLIS.2 /extract_glb enforces decimation >= 100000
+    "godot-mobile": (100000, 1024),
+    "godot": (100000, 2048),
+    "unity": (100000, 2048),
     "blender": (300000, 2048),
     "film": (500000, 4096),
 }

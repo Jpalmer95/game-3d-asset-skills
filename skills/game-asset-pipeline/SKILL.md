@@ -34,7 +34,13 @@ prompts.txt -> [1 image gen] -> images/
 
 1. **Concepts.** Write/confirm `prompts.txt` — one line per asset, consistent anchors: `full body, T-pose front view, centered with margin, dark background, fantasy game asset`. Characters only for rigging; props skip phase 4.
 2. **Images.** Prefer local ComfyUI (`comfyui` skill) > HF image Space > `image_generate` tool. Name files `NN_slug.png` so sort order matches prompt lines. GATE: `vision_analyze` each image — subject fully visible, correct limb count/anatomy, plain dark background. Regenerate failures NOW (cheap) rather than after GPU phases. (Lesson: "ant" prompts can produce centipedes without "exactly six legs, three body segments, two antennae".)
-3. **Mask.** `rembg i images/NN.png images_masked/NN.png` per file, or rely on TRELLIS `--preprocess`. Local rembg preferred — inspectable before spending quota.
+3. **Mask.** Use the rembg **Python API**, not its CLI (the CLI eagerly imports server deps — gradio/aiohttp/fastapi — and crashes without them):
+   ```python
+   from rembg import remove; from pathlib import Path
+   for f in Path("images").glob("*.png"):
+       (Path("images_masked")/f.name).write_bytes(remove(f.read_bytes()))
+   ```
+   Or rely on TRELLIS `--preprocess`. Local rembg preferred — inspectable before spending quota.
 4. **3D.** `python3 <trellis-skill>/scripts/trellis_gen.py --batch images_masked/ --out-root assets --prompts-file prompts.txt --keep-image --target godot --resume`. Runs sequential (ZeroGPU serializes), applies quality gates per asset (alpha coverage in, GLB geometry+texture out). Always run as a Hermes background task (`terminal(background=true, notify_on_complete=true)`) — expect 3-8 min per asset.
 5. **Rig (characters only).** `python3 <rig-skill>/scripts/skintokens_rig.py --batch assets/glb/ -o assets/rigged/ --preserve-texture-scale --resume`. Rig gate verifies joints + JOINTS_0/WEIGHTS_0.
 6. **Verify.** Import one output into Blender via `blender-mcp` (or headless `blender -b --python-expr`): check bone count, vertex groups match bones, pose 2-3 bones and screenshot. SkinTokens outputs include a stray `Icosphere` joint-viz mesh — hide/delete it before export. Consider renaming bones to readable names (keep vertex groups in sync) for hand animation work.

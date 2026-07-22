@@ -156,7 +156,9 @@ def main():
             sys.exit(f"no images found in {args.batch}")
         ok = 0
         for i, img_path in enumerate(images):
-            slug = f"{i + 1:02d}_{img_path.stem}"
+            stem = img_path.stem
+            # avoid double prefix when inputs are already NN_ named
+            slug = stem if stem[:2].isdigit() and stem[2:3] == "_" else f"{i + 1:02d}_{stem}"
             prompt = prompts[i] if i < len(prompts) else ""
             out_glb = glb_dir / f"{slug}.glb"
             if args.resume and out_glb.exists():
