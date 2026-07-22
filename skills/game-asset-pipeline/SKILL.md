@@ -42,7 +42,7 @@ prompts.txt -> [1 image gen] -> images/
    ```
    Or rely on TRELLIS `--preprocess`. Local rembg preferred — inspectable before spending quota.
 4. **3D.** `python3 <trellis-skill>/scripts/trellis_gen.py --batch images_masked/ --out-root assets --prompts-file prompts.txt --keep-image --target godot --resume`. Runs sequential (ZeroGPU serializes), applies quality gates per asset (alpha coverage in, GLB geometry+texture out). Always run as a Hermes background task (`terminal(background=true, notify_on_complete=true)`) — expect 3-8 min per asset.
-5. **Rig (characters only).** `python3 <rig-skill>/scripts/skintokens_rig.py --batch assets/glb/ -o assets/rigged/ --preserve-texture-scale --resume`. Rig gate verifies joints + JOINTS_0/WEIGHTS_0.
+5. **Rig (characters only).** `python3 <rig-skill>/scripts/skintokens_rig.py --batch assets/glb/ -o assets/rigged/ --preserve-texture-scale --resume`. Rig gate verifies joints + JOINTS_0/WEIGHTS_0. **For any asset that fails with "No output files were produced", retry that asset with `--voxel-postprocess` — confirmed to rescue all failures in the 10-ant dogfood batch (translucent/glossy/rocky textures trip the default path).**
 6. **Verify.** Import one output into Blender via `blender-mcp` (or headless `blender -b --python-expr`): check bone count, vertex groups match bones, pose 2-3 bones and screenshot. SkinTokens outputs include a stray `Icosphere` joint-viz mesh — hide/delete it before export. Consider renaming bones to readable names (keep vertex groups in sync) for hand animation work.
 
 ## Script Flags Reference

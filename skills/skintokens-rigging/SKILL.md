@@ -48,7 +48,7 @@ Useful flags (Space defaults shown):
 - `--top-k 5 --top-p 0.95 --temperature 1.0 --rep-penalty 2.0 --beams 10` — sampling knobs; leave alone unless output is degenerate, then lower temperature (e.g. 0.7) first.
 - `--preserve-texture-scale` — keeps original UV textures and world scale; usually WANT this on for TRELLIS.2 outputs (they're already textured and reasonably scaled).
 - `--use-existing-skeleton` — only when input already has a skeleton and you just need skin weights.
-- `--voxel-postprocess` — extra cleanup pass for skin weights; try if joints bleed into nearby limbs (common on thin ant legs / antennae).
+- `--voxel-postprocess` — extra cleanup pass for skin weights. **CONFIRMED RULE from live batch: models that fail with "No output files were produced" (3/10 in the ant batch: translucent ice, glossy venom, granite stone textures) succeeded on the FIRST retry with this flag enabled. If a rig fails server-side, retry with `--voxel-postprocess` before anything else.**
 - Completion: output GLB exists, opens in Blender with an Armature modifier / in Godot with a Skeleton3D node.
 
 ## Full Pipeline (concept -> rigged game asset)
