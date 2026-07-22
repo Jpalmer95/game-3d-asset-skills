@@ -1,4 +1,4 @@
-# Game Asset Pipeline (Hermes Agent skills)
+# Game 3D Asset Skills (Hermes Agent)
 
 Text prompt → images → alpha-masked sprites → textured 3D GLBs → auto-rigged characters,
 orchestrated end-to-end by Hermes Agent skills. Runs on Hugging Face ZeroGPU with your own
@@ -9,6 +9,8 @@ Built around two Hugging Face Spaces:
 - [VAST-AI/SkinTokens](https://huggingface.co/spaces/VAST-AI/SkinTokens) — static mesh → skeleton + skin weights (rigged GLB)
 
 ## The three skills
+
+![10 rigged elemental ants](examples/contact_sheet.png)
 
 | Skill | Role | When it runs |
 |---|---|---|
