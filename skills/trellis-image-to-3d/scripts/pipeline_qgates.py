@@ -90,6 +90,16 @@ def gate_glb_rig(path, min_bones=5):
         return False, f"rig gate error: {e}"
 
 
+def gate_full_body_for_rig(path):
+    """DEPRECATED — bounding-box proportions cannot distinguish cropped humanoids
+    from legitimately wide creatures (ants/spiders). Verified: waist-up wizard
+    (fails rigging) and fire ant (rigs fine) have identical 1.0 ratios.
+    Kept as a no-op so existing callers don't break; rely on the auto-voxel
+    retry in skintokens_rig.py instead. Real defense: require full-body source
+    images when rigging is intended (documented in the skills)."""
+    return True, "proportion gate disabled (unreliable heuristic)"
+
+
 ENGINE_PRESETS = {
     # target: (decimation, texture_size)
     # NOTE: TRELLIS.2 /extract_glb enforces decimation >= 100000

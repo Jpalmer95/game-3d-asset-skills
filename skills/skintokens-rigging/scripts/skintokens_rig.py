@@ -68,6 +68,11 @@ def rig_one(client, model_path, out_glb, args):
     last_err = None
     for attempt in range(3):
         try:
+            # auto-escalate: repeated "No output files" failures are rescued by
+            # voxel post-processing (confirmed on translucent/glossy/rocky inputs)
+            if attempt >= 1 and not payload[8] and "No output files" in str(last_err or ""):
+                print(f"[{Path(model_path).stem}] auto-enabling voxel post-processing", flush=True)
+                payload[8] = True
             print(f"[{Path(model_path).stem}] run_gradio (attempt {attempt + 1}) ...", flush=True)
             res = client.predict(*payload, api_name="/run_gradio")
             status, glb = (res if isinstance(res, (list, tuple)) else (None, res))[:2]

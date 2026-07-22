@@ -68,6 +68,7 @@ This is the combined trellis-image-to-3d + skintokens-rigging chain — the "10 
 1. **No HF_TOKEN** — anonymous runs hit the public queue and frequently fail on this GPU-heavy Space. Export it first.
 2. **Rigging props.** Static scenery gains nothing; only rig characters/creatures.
 3. **Tangled input poses.** Characters holding weapons across the body or with limbs touching the torso confuse joint prediction. Prefer T-pose source images upstream in TRELLIS.
+4. **Cropped/waist-up source images will NOT rig.** Confirmed live: a waist-up wizard portrait produced a valid static GLB but SkinTokens failed with "No output files" even WITH voxel-postprocess — you can't skeletonize legs that don't exist. The retry auto-escalation rescues texture/material failures, NOT missing-geometry failures. Rule: if rigging is the goal, the source image MUST be full-body. (We tried gating this via bounding-box proportions — doesn't work, wide creatures like ants are legitimately squat. No cheap geometric test; enforce it at the image prompt/review stage.)
 4. **Expecting production weights.** Auto skinning is a starting point — thin geometry (antennae, fingers, lantern handles) often needs manual weight painting.
 5. **Parallel batch calls** — ZeroGPU serializes per account; loop sequentially.
 6. **Forgetting --preserve-texture-scale on TRELLIS outputs** — without it you may lose the texture TRELLIS baked.
