@@ -20,7 +20,7 @@ import re
 import sys
 
 import bpy
-import torch
+import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
 
@@ -57,10 +57,17 @@ def main():
             elif parts[0] == "root":
                 root_name = parts[1]
 
-    local_quats = torch.load(os.path.join(args.results_dir, "local_quats.pt"),
-                             map_location="cpu")  # [T, J, 4] (wxyz)
-    root_pos = torch.load(os.path.join(args.results_dir, "root_pos.pt"),
-                          map_location="cpu")  # [T, 3]
+    # .npy preferred (Blender has numpy, not torch). If only .pt exists,
+    # dump first with: python -c "import torch,numpy as np; ..." in the
+    # Puppeteer venv (see SKILL.md).
+    def load(name):
+        npy = os.path.join(args.results_dir, name + ".npy")
+        if os.path.exists(npy):
+            return np.load(npy)
+        raise SystemExit(f"missing {npy} — convert .pt to .npy first (SKILL.md)")
+
+    local_quats = load("local_quats")  # [T, J, 4] (wxyz)
+    root_pos = load("root_pos")        # [T, 3]
     T, J, _ = local_quats.shape
     assert J == len(joint_order), f"tensor has {J} joints, rig.txt has {len(joint_order)}"
 
