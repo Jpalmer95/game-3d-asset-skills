@@ -8,7 +8,7 @@ Built around two Hugging Face Spaces:
 - [microsoft/TRELLIS.2](https://huggingface.co/spaces/microsoft/TRELLIS.2) — image → textured 3D GLB
 - [VAST-AI/SkinTokens](https://huggingface.co/spaces/VAST-AI/SkinTokens) — static mesh → skeleton + skin weights (rigged GLB)
 
-## The three skills
+## The four skills
 
 ![10 rigged elemental ants](examples/contact_sheet.png)
 
@@ -17,8 +17,21 @@ Built around two Hugging Face Spaces:
 | `skills/game-asset-pipeline` | Orchestrator | "make me 10 enemy characters" — chains everything below |
 | `skills/trellis-image-to-3d` | Phase: image → 3D | single/batch GLB generation, quality gates, engine presets |
 | `skills/skintokens-rigging` | Phase: mesh → rig | single/batch auto-rigging with rig verification gates |
+| `skills/puppeteer-animation` | Phase: rig → animation | video-guided animation of any rigged asset (local GPU) |
 
 Each phase skill works standalone; the orchestrator invokes them as needed.
+
+## Animation phase (puppeteer-animation)
+
+https://github.com/Jpalmer95/game-3d-asset-skills/raw/master/examples/fire_ant_walk.mp4
+
+Rigged asset + a short AI-generated driving video → skeletal keyframes baked into
+an animated GLB, via [Seed3D/Puppeteer](https://github.com/Seed3D/Puppeteer)
+(video-guided motion optimization). Works on **any** skeleton — the clip above is
+one of the SkinTokens-rigged ants learning a six-legged walk cycle from a
+5-second image-to-video clip. Runs locally on a 12GB GPU (~25 min/animation);
+see the skill's SKILL.md for the VRAM playbook. Our 12GB compatibility fixes are
+also PRed upstream: https://github.com/Seed3D/Puppeteer/pull/26
 
 ## Install (Hermes Agent)
 
