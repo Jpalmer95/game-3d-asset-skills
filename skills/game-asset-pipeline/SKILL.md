@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [3d, game-dev, pipeline, orchestrator, trellis, skintokens, glb, rigging]
-    related_skills: [trellis-image-to-3d, skintokens-rigging, comfyui, segment-anything-model, blender-mcp, hermes-3d-mcp]
+    related_skills: [trellis-image-to-3d, skintokens-rigging, puppeteer-animation, comfyui, segment-anything-model, blender-mcp, hermes-3d-mcp]
 ---
 
 # Game Asset Pipeline — Concept to Rigged Characters
@@ -21,8 +21,11 @@ prompts.txt -> [1 image gen] -> images/
             -> [2 mask]      -> images_masked/
             -> [3 3D gen]    -> assets/glb/ + manifest.csv      (trellis-image-to-3d)
             -> [4 rig]       -> assets/rigged/ + rig_manifest   (skintokens-rigging)
-            -> [5 verify]    -> Blender/Godot import checks     (blender-mcp / hermes-3d-mcp)
+            -> [5 animate]   -> assets/animated/                (puppeteer-animation, optional)
+            -> [6 verify]    -> Blender/Godot import checks     (blender-mcp / hermes-3d-mcp)
 ```
+
+Phase 5 (optional, characters only): video-guided animation via `puppeteer-animation` — render first frame of each rigged GLB, animate with image-to-video (FAL pixverse / local ComfyUI), optimize skeletal motion (~25 min/asset on a 12GB GPU; pass `--decimate 20000` for TRELLIS meshes), bake keyframes to animated GLB. Batch overnight.
 
 ## When to Use
 
