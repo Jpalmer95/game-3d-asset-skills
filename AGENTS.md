@@ -17,6 +17,10 @@ local GPU required. Only `puppeteer-animation` needs the local GPU.
 Each phase skill works standalone. `scripts/asset_stage.py` is the re-entry ledger:
 edit a prompt, a PNG, or a Blender export and only the downstream stages rerun.
 Model defaults and the licenses that keep them defaults are in `MODELS.md`.
+Local VRAM floors are in `LOCAL.md`. Do not promise a full local run on a
+card under 24 GB: TRELLIS.2 publishes 24 GB, SkinTokens publishes 14 GB.
+A 12 GB card runs images and (patched) Puppeteer only; mesh and rig stay
+on the user's own HF Space quota.
 
 ## External dependencies
 - `microsoft/TRELLIS.2` — image → textured 3D GLB

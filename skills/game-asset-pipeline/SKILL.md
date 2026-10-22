@@ -85,7 +85,7 @@ Quality gates live in `trellis-image-to-3d/scripts/pipeline_qgates.py`: alpha-ma
 1. **Anatomy drift at image gen.** Vision-gate every image before phase 3; specify limb counts explicitly in prompts for non-humanoid creatures. Gate against a *passing* reference (symmetrical front view, legs clear of the body), not against "looks cool". FLUX.1-schnell's Space has no negative prompt — "no wings" is ignored. When a negation or a limb count will not hold, edit a passing image (img2img, or a pixel/hue edit) instead of re-rolling text-to-image.
 2. **Skipping --resume on reruns.** Without it, a crash at asset 8 of 10 restarts from 1.
 3. **Rigging props.** Only characters go to phase 5; split prompts.txt or filter assets/glb/ accordingly.
-4. **HF_TOKEN not visible to the shell.** Export in the same shell that launches the batch, or `set -a; . ~/.hermes/.env; set +a` first.
+4. **HF_TOKEN not visible to the shell.** Export in the same shell that launches the batch, or `set -a; . ~/.hermes/.env; set +a` first. A full local run (no token) needs a **24 GB NVIDIA** card. SkinTokens publishes 14 GB, TRELLIS.2 publishes 24 GB. A 12 GB card does images and patched Puppeteer only. Specs: `LOCAL.md` in the repo.
 5. **Forgetting the Icosphere.** SkinTokens adds joint-viz spheres to the GLB; strip in Blender before shipping to an engine.
 
 ## Verification Checklist

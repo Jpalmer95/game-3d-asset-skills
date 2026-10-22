@@ -89,6 +89,19 @@ Start a new Hermes session (skills load at session start), then ask:
 Start with 3, not 10. ZeroGPU is serial and a few minutes per asset per phase.
 Their `HF_TOKEN` spends their quota, not yours.
 
+Passing the repo link is enough. This README, `AGENTS.md`, and `LOCAL.md`
+are what their agent should read. They do not need a walkthrough from you.
+
+## Running it fully locally
+
+No token, weights on their own GPU: **24 GB NVIDIA, Linux, one stage at a
+time.** That is TRELLIS.2's published floor, and it also covers SkinTokens
+(14 GB) and animation. A 16 GB card can rig and still cannot run official
+TRELLIS.2. A 12 GB card (RTX 4070 Ti class) is the Space path plus local
+images and patched Puppeteer — not a full local stack.
+
+Full table, disk, RAM, and the separate-venv warning: [LOCAL.md](LOCAL.md).
+
 ## Quick start (manual, no agent)
 
 ```bash

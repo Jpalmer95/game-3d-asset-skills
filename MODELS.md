@@ -13,3 +13,6 @@ per-generation API, and whose license does not block shipping the asset.
 Re-check this table before swapping a stage. A higher-quality model with a
 non-commercial license is not an improvement for a pipeline we hand to
 other people.
+
+Local VRAM, RAM, and disk floors: [LOCAL.md](LOCAL.md). Quote **24 GB
+NVIDIA** for a full local run. Do not quote 12 GB.
