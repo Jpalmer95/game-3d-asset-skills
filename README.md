@@ -63,15 +63,31 @@ also PRed upstream: https://github.com/Seed3D/Puppeteer/pull/26
 
 ## Install (Hermes Agent)
 
+Share this repo. Do not make a fifth skill that only links here — the four
+skills below are the installable units, and they go stale if a wrapper
+restates them.
+
 ```bash
-# copy (or symlink) the skill folders into your Hermes skills dir
-cp -r skills/* ~/.hermes/skills/gaming/      # or ~/.hermes/skills/<category>/
+# searchable from `hermes skills search` after this
+hermes skills tap add Jpalmer95/game-3d-asset-skills
+
+# or install directly (identifier is owner/repo/path-to-skill-dir)
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/game-asset-pipeline
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/trellis-image-to-3d
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/skintokens-rigging
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/puppeteer-animation
+
+# the ledger and the example prompts are NOT inside the skill folders
+git clone https://github.com/Jpalmer95/game-3d-asset-skills.git
 pip install "gradio_client>=1.0" "rembg[cpu]" pillow
 export HF_TOKEN=hf_...   # read token: https://huggingface.co/settings/tokens
 ```
 
-Restart Hermes (skills load at session start), then ask:
-> "Generate 10 elemental ant enemies, rigged, for my Godot game"
+Start a new Hermes session (skills load at session start), then ask:
+> "Generate 3 elemental ant enemies, rigged, for my Godot game. Vision-gate each image before 3D."
+
+Start with 3, not 10. ZeroGPU is serial and a few minutes per asset per phase.
+Their `HF_TOKEN` spends their quota, not yours.
 
 ## Quick start (manual, no agent)
 

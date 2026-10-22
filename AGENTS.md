@@ -22,17 +22,32 @@ Model defaults and the licenses that keep them defaults are in `MODELS.md`.
 - `microsoft/TRELLIS.2` — image → textured 3D GLB
 - `VAST-AI/SkinTokens` — static mesh → skeleton + skin weights (rigged GLB)
 
-Both are third-party Spaces. **Do not let tests depend on their health** — select fixtures at test
-time and fail loudly with the Space name when one is unavailable (see
-`~/dev/knowledge` → `wiki/decisions/recurring-architecture-principles.md` §6).
+Both are third-party Spaces. Tests must not call them. If a live check fails, name the Space and stop — do not invent a fallback mesh.
 
 ## Install
-These are Hermes Agent skills — install them into `~/.hermes/skills/` rather than invoking the
-scripts by hand. A manual, no-agent quick start is documented in `README.md`.
+These skills live in this repo under `skills/`. Another Hermes user should install
+them from here, not from a second wrapper skill:
+
+```bash
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/game-asset-pipeline
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/trellis-image-to-3d
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/skintokens-rigging
+hermes skills install Jpalmer95/game-3d-asset-skills/skills/puppeteer-animation
+```
+
+Skill install does **not** include `scripts/` (the stage ledger) or `examples/`.
+Clone the repo for those. A manual copy of `skills/` into `~/.hermes/skills/`
+also works; see `README.md`.
 
 ## Notes & limitations
-See the README's "Notes & limitations" before promising output quality. Rig verification gates
-exist because auto-rigging silently produces bad skeletons.
+Read the README "Notes & limitations" before promising output quality. Auto-rigs
+fail silently on cropped or glassy meshes; the rig script retries with
+`--voxel-postprocess` for the glassy case. It cannot invent legs the image
+never had.
+
+Do not depend on the author's other checkouts (`~/dev/knowledge`, ForgeDNA,
+HermesForge). This repo is the whole public surface.
 
 ## Related
-Cross-cutting context: `~/dev/knowledge` → `wiki/projects/game-and-xr.md`.
+Upstream Spaces: `microsoft/TRELLIS.2`, `VAST-AI/SkinTokens`. Model choice and
+licenses: `MODELS.md`.
