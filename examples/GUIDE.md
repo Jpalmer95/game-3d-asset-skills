@@ -67,7 +67,7 @@ limbs glued to the torso give SkinTokens nothing to articulate.
 ### Recipe A — One asset, full chain (image → 3D → rigged)
 
 ```bash
-cd "/home/jonathan/Desktop/3D Pipeline"
+cd /path/to/your-colony
 
 # generate or drop your image into images/01_dwarf.png, then:
 python3 $TRELLIS images/01_dwarf.png -o assets/glb/01_dwarf.glb --preprocess
