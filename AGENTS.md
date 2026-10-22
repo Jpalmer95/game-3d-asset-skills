@@ -20,7 +20,9 @@ Model defaults and the licenses that keep them defaults are in `MODELS.md`.
 Local VRAM floors are in `LOCAL.md`. Do not promise a full local run on a
 card under 24 GB: TRELLIS.2 publishes 24 GB, SkinTokens publishes 14 GB.
 A 12 GB card runs images and (patched) Puppeteer only; mesh and rig stay
-on the user's own HF Space quota.
+on the user's own HF Space quota. `scripts/which_backend.py` classifies the
+GPU. `asset_stage.py run` still calls Spaces even on a 24 GB card — local
+weight loading is not wired.
 
 ## External dependencies
 - `microsoft/TRELLIS.2` — image → textured 3D GLB

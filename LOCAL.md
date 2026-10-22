@@ -1,12 +1,31 @@
 # Local hardware (no Hugging Face token)
 
-Checked 2026-10-22 against upstream READMEs, not against a local run of
-TRELLIS.2 or SkinTokens on this machine. The shipped pipeline uses those
-two as ZeroGPU Spaces. This page is the spec for someone who refuses the
-Spaces and runs the weights themselves.
+Checked 2026-10-22 against upstream READMEs. This repo has **not** run
+TRELLIS.2 or SkinTokens from local weights, and its scripts do not install
+them. `skills/trellis-image-to-3d/scripts/trellis_gen.py` and
+`skills/skintokens-rigging/scripts/skintokens_rig.py` call the
+Hugging Face Spaces. An agent that only clones this repo and runs
+`asset_stage.py` is on the Spaces path. That path is the one that works
+from this repo alone.
 
-Unload between stages. Peak VRAM is the largest single stage, not the sum.
-Do not keep the image model resident while TRELLIS.2 is loaded.
+`python3 scripts/which_backend.py` prints which of those two facts applies
+to the machine in front of you.
+
+## What is actually turnkey
+
+| Path | From this repo alone? | What you install |
+|---|---|---|
+| Spaces (mesh + rig) | Yes | `pip install "gradio_client>=1.0" "rembg[cpu]" pillow`, an `HF_TOKEN`, the four skills. See README. |
+| Local images | No, not in this repo | ComfyUI plus SDXL, or FLUX.1-schnell via diffusers. Not invoked by `asset_stage.py`. |
+| Local mesh | No | Upstream [TRELLIS.2](https://github.com/microsoft/TRELLIS.2) `setup.sh`. CUDA toolkit 12.4, conda, Linux, 24 GB NVIDIA. Separate env from everything else. |
+| Local rig | No | Upstream [SkinTokens](https://github.com/VAST-AI-Research/SkinTokens). Python ≥ 3.11, CUDA ≥ 12.1, 14 GB NVIDIA. Separate env from Puppeteer (Python 3.10). |
+| Local animation | Documented, not one command | `skills/puppeteer-animation/SKILL.md`. NVIDIA, 12 GB only after its patches and a decimated mesh. |
+
+Do not describe the local mesh or rig as "clone this repo and go." The
+weights, CUDA extensions (`flash-attn`, `nvdiffrast`, `CuMesh`, `FlexGEMM`),
+and conda env live upstream. Wiring those into `asset_stage.py run` is
+future work, and it has to be verified on a 24 GB NVIDIA card before this
+repo claims it.
 
 ## The number to quote
 
@@ -50,6 +69,13 @@ for the mesh step instead of promising a local run.
   sit on top). This repo has not measured the TRELLIS.2 tree byte-for-byte.
 - **OS:** Linux. TRELLIS.2's install notes are Linux. Do not promise Windows
   or macOS for the mesh step.
+- **Vendor:** NVIDIA. Enough VRAM on an AMD or Apple GPU does not run this
+  stack. TRELLIS.2's setup compiles CUDA extensions (`nvdiffrast`, `CuMesh`,
+  `FlexGEMM`, `flash-attn`). SkinTokens' install is CUDA ≥ 12.1. A 32 GB
+  Radeon AI PRO R9700 is a ROCm card; a 64 GB unified-memory chip (Apple
+  Silicon or an APU) has more memory and still no CUDA. For this pipeline
+  the faster card is a 24 GB+ NVIDIA, because it is the one the code runs on.
+  Dedicated GDDR beats unified LPDDR only after the software starts.
 - **One venv will not run every stage.** SkinTokens wants Python 3.11 and
   CUDA 12.1+. The Puppeteer skill pins Python 3.10 and torch 2.1.1+cu118.
   Separate environments. Unload the GPU between them (`nvidia-smi`, then

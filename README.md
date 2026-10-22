@@ -89,8 +89,11 @@ Start a new Hermes session (skills load at session start), then ask:
 Start with 3, not 10. ZeroGPU is serial and a few minutes per asset per phase.
 Their `HF_TOKEN` spends their quota, not yours.
 
-Passing the repo link is enough. This README, `AGENTS.md`, and `LOCAL.md`
-are what their agent should read. They do not need a walkthrough from you.
+Passing the repo link is enough for the **Spaces** path. Their agent should
+read this README, install the four skills, set `HF_TOKEN`, and run. It is
+not enough for a no-token local run: this repo does not install or invoke
+the TRELLIS.2 or SkinTokens weights. That gap is spelled out in
+[LOCAL.md](LOCAL.md). Do not tell them local is turnkey.
 
 ## Running it fully locally
 
