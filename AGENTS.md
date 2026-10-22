@@ -14,7 +14,9 @@ local GPU required. Only `puppeteer-animation` needs the local GPU.
 | `skintokens-rigging` | mesh → rig | single/batch auto-rigging with rig verification gates |
 | `puppeteer-animation` | rig → animation | video-guided animation (**local GPU**) |
 
-Each phase skill works standalone; the orchestrator invokes them as needed.
+Each phase skill works standalone. `scripts/asset_stage.py` is the re-entry ledger:
+edit a prompt, a PNG, or a Blender export and only the downstream stages rerun.
+Model defaults and the licenses that keep them defaults are in `MODELS.md`.
 
 ## External dependencies
 - `microsoft/TRELLIS.2` — image → textured 3D GLB

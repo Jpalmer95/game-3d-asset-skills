@@ -21,6 +21,34 @@ Built around two Hugging Face Spaces:
 
 Each phase skill works standalone; the orchestrator invokes them as needed.
 
+## Edit any stage
+
+The chain is not a one-shot. `scripts/asset_stage.py` writes a `project.json`
+ledger. Change the prompt, replace the concept PNG, fix the mask in GIMP, or
+overwrite the GLB from Blender — `refresh` sees the new hash and `plan` prints
+only the downstream commands.
+
+| You change | What reruns |
+|---|---|
+| prompt (`set-prompt`) | image → mask → mesh → rig |
+| concept image (regen, inpaint, or a painted PNG) | mask onward |
+| alpha mask | mesh onward |
+| mesh (Blender edit, export over the GLB, `refresh`) | rig onward |
+| rig (weight-paint, re-export) | animation only |
+
+```bash
+python3 scripts/asset_stage.py adopt ./my-colony
+python3 scripts/asset_stage.py set-prompt ./my-colony 01_fire_ant "new description"
+python3 scripts/asset_stage.py refresh ./my-colony
+python3 scripts/asset_stage.py plan ./my-colony --slug 01_fire_ant
+python3 scripts/asset_stage.py run ./my-colony 01_fire_ant --through rig
+```
+
+Cost is your own inference: a Hugging Face token (ZeroGPU quota on the MIT-licensed
+TRELLIS.2 and SkinTokens Spaces) or a local GPU (ComfyUI for images, Puppeteer
+for animation). No per-generation paid API. Prompt files may contain `#`
+comments; both the ledger and `trellis_gen.py` skip them.
+
 ## Animation phase (puppeteer-animation)
 
 https://github.com/Jpalmer95/game-3d-asset-skills/raw/master/examples/fire_ant_walk.mp4
@@ -80,9 +108,14 @@ ready 10-prompt batch.
   aiohttp, fastapi). Use the Python API instead:
   `python3 -c "from rembg import remove; open('out.png','wb').write(remove(open('in.png','rb').read()))"`
 - SkinTokens output includes a joint-visualization icosphere mesh; hide/delete it in
-  Blender/Godot before shipping.
+  Blender/Godot before shipping. Headless:
+  `blender -b --python scripts/strip_icosphere.py -- in_rigged.glb out_rigged.glb`
 - Auto-rigs are a starting point: thin appendages may need a weight-paint pass.
-- TRELLIS.2 is research code — check its license for commercial use of generated assets.
+- Check `MODELS.md` before swapping a stage. TRELLIS.2 and SkinTokens are still
+  the MIT defaults; a higher-quality model with a non-commercial license is not
+  an upgrade for a pipeline other people will ship assets from.
+- TRELLIS.2 is research code — the model and Space card are MIT, but confirm the
+  model card before you sell generated assets.
 
 ## License
 

@@ -48,6 +48,22 @@ Phase 5 (optional, characters only): video-guided animation via `puppeteer-anima
 5. **Rig (characters only).** `python3 <rig-skill>/scripts/skintokens_rig.py --batch assets/glb/ -o assets/rigged/ --preserve-texture-scale --resume`. Rig gate verifies joints + JOINTS_0/WEIGHTS_0. **For any asset that fails with "No output files were produced", retry that asset with `--voxel-postprocess` — confirmed to rescue all failures in the 10-ant dogfood batch (translucent/glossy/rocky textures trip the default path).**
 6. **Verify.** Import one output into Blender via `blender-mcp` (or headless `blender -b --python-expr`): check bone count, vertex groups match bones, pose 2-3 bones and screenshot. SkinTokens outputs include a stray `Icosphere` joint-viz mesh — hide/delete it before export. Consider renaming bones to readable names (keep vertex groups in sync) for hand animation work.
 
+## Re-entry (edit any stage, rerun only downstream)
+
+Do not re-roll the whole batch because one sentence or one mesh changed.
+`scripts/asset_stage.py` in the `game-3d-asset-skills` repo is the ledger.
+
+```
+prompt → image → mask → mesh → rig → animation
+```
+
+1. `adopt <project dir>` on an existing colony, or `add` a new slug + prompt.
+2. When the user edits text: `set-prompt`. When they replace a PNG/GLB: `import --stage image|mask|mesh|rig`, or overwrite the canonical file and `refresh` (hash mismatch marks that stage an external edit and stales everything after it).
+3. `plan --slug X` prints only the phase commands still needed. `run <slug> --through rig` executes them and records each stage. A failed rig is retried once with `--voxel-postprocess`.
+4. Canonical paths: `images/{slug}.png`, `images_masked/{slug}.png`, `assets/glb/{slug}.glb`, `assets/rigged/{slug}_rigged.glb`.
+5. Vision-gate images against a *successful* reference, not against "looks cool". The 10-ant dogfood that rigged is a symmetrical front view, legs spread clear of the body, no spread wings. A 3/4 hero render with open wings fails this gate even if the prompt said "T-pose" — regenerate before TRELLIS.
+6. Prompt files: skip `#` comments. `trellis_gen.py` now does; older runs shifted every prompt by the comment-line count.
+
 ## Script Flags Reference
 
 Both phase scripts support:
@@ -66,7 +82,7 @@ Quality gates live in `trellis-image-to-3d/scripts/pipeline_qgates.py`: alpha-ma
 
 ## Common Pitfalls
 
-1. **Anatomy drift at image gen.** Vision-gate every image before phase 3; specify limb counts explicitly in prompts for non-humanoid creatures.
+1. **Anatomy drift at image gen.** Vision-gate every image before phase 3; specify limb counts explicitly in prompts for non-humanoid creatures. Gate against a *passing* reference (symmetrical front view, legs clear of the body), not against "looks cool". FLUX.1-schnell's Space has no negative prompt — "no wings" is ignored. When a negation or a limb count will not hold, edit a passing image (img2img, or a pixel/hue edit) instead of re-rolling text-to-image.
 2. **Skipping --resume on reruns.** Without it, a crash at asset 8 of 10 restarts from 1.
 3. **Rigging props.** Only characters go to phase 5; split prompts.txt or filter assets/glb/ accordingly.
 4. **HF_TOKEN not visible to the shell.** Export in the same shell that launches the batch, or `set -a; . ~/.hermes/.env; set +a` first.

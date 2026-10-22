@@ -149,7 +149,13 @@ def main():
         glb_dir.mkdir(parents=True, exist_ok=True)
         prompts = []
         if args.prompts_file:
-            prompts = [l.strip() for l in open(args.prompts_file) if l.strip()]
+            # Skip blanks and '#' comments. Counting them as prompts shifted
+            # every row of the elemental-ant dogfood manifest.
+            prompts = [
+                l.strip()
+                for l in open(args.prompts_file)
+                if l.strip() and not l.strip().startswith("#")
+            ]
         images = sorted(p for p in Path(args.batch).iterdir()
                         if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"))
         if not images:
