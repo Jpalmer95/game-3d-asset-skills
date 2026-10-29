@@ -42,8 +42,8 @@ def main():
     p.add_argument("--video", help="Driving video (mp4). If omitted, you must "
                    "generate one from a first frame and place it at "
                    "<out>/input.mp4 before running with --skip-convert.")
-    p.add_argument("--puppeteer", default=os.path.expanduser("~/dev/Puppeteer"),
-                   help="Path to Puppeteer clone")
+    p.add_argument("--puppeteer", default=os.environ.get("PUPPETEER_DIR"),
+                   help="Path to the Seed3D/Puppeteer clone (or set PUPPETEER_DIR)")
     p.add_argument("-o", "--out", required=True, help="Output/work dir")
     p.add_argument("--seq-name", default=None,
                    help="Sequence name (default: GLB basename)")
@@ -55,11 +55,19 @@ def main():
     p.add_argument("--additional-renderers", default="back,right,left")
     p.add_argument("--smooth-weight", type=float, default=None)
     p.add_argument("--blender", default="blender")
+    p.add_argument("--decimate", type=int, default=0,
+                   help="Target face count per mesh during conversion (0 = keep). "
+                        "Use ~20000 for TRELLIS outputs: the optimizer OOMs on "
+                        "200k-vertex meshes, and decimating after rig.txt exists "
+                        "breaks the skin-weight index.")
     p.add_argument("--skip-convert", action="store_true",
                    help="objs/ already prepared; go straight to precompute")
     p.add_argument("--skip-precompute", action="store_true")
     args = p.parse_args()
 
+    if not args.puppeteer:
+        sys.exit("Pass --puppeteer /path/to/Puppeteer (or set PUPPETEER_DIR). "
+                 "See the skill's Prerequisites.")
     pup = os.path.abspath(os.path.expanduser(args.puppeteer))
     anim = os.path.join(pup, "animation")
     venv_py = os.path.join(pup, ".venv", "bin", "python")

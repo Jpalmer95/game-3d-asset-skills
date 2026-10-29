@@ -19,12 +19,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-try:
-    from pipeline_qgates import gate_glb_rig
-except ImportError:
-    # standalone use outside the trellis skill dir: try sibling skill location
-    sys.path.insert(0, str(Path.home() / ".hermes/skills/gaming/trellis-image-to-3d/scripts"))
-    from pipeline_qgates import gate_glb_rig
+from rig_gates import gate_glb_rig
 
 SPACE = "VAST-AI/SkinTokens"
 CHECKPOINT = "experiments/articulation_xl_quantization_256_token_4/grpo_1400.ckpt"
@@ -117,7 +112,7 @@ def main():
     ap.add_argument("--top-p", type=float, default=0.95)
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--rep-penalty", type=float, default=2.0)
-    ap.add_argument("--beams", type=float, default=10)
+    ap.add_argument("--beams", type=int, default=10)
     ap.add_argument("--use-existing-skeleton", action="store_true")
     ap.add_argument("--preserve-texture-scale", action="store_true",
                     help="keep original textures/scale (recommended for TRELLIS.2 outputs)")

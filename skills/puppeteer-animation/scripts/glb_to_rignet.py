@@ -126,4 +126,5 @@ def main():
           f"({len(joints)} joints, {vert_offset} verts)")
 
 
-main()
+if __name__ == "__main__":
+    main()

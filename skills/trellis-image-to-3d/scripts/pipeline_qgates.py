@@ -2,7 +2,7 @@
 """Quality gates for the game-asset pipeline.
 
 Each gate is a function returning (ok: bool, message: str). Used by
-trellis_gen.py, skintokens_rig.py, and the game-asset-pipeline orchestrator.
+trellis_gen.py and the game-asset-pipeline orchestrator.
 No third-party deps beyond what the pipeline already requires (Pillow optional
 for image gates; GLB parsing is done with stdlib struct/json).
 """
@@ -88,16 +88,6 @@ def gate_glb_rig(path, min_bones=5):
         return True, f"rigged: {joints} joints, weights present"
     except Exception as e:
         return False, f"rig gate error: {e}"
-
-
-def gate_full_body_for_rig(path):
-    """DEPRECATED — bounding-box proportions cannot distinguish cropped humanoids
-    from legitimately wide creatures (ants/spiders). Verified: waist-up wizard
-    (fails rigging) and fire ant (rigs fine) have identical 1.0 ratios.
-    Kept as a no-op so existing callers don't break; rely on the auto-voxel
-    retry in skintokens_rig.py instead. Real defense: require full-body source
-    images when rigging is intended (documented in the skills)."""
-    return True, "proportion gate disabled (unreliable heuristic)"
 
 
 ENGINE_PRESETS = {

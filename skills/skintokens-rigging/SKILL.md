@@ -1,82 +1,108 @@
 ---
 name: skintokens-rigging
-description: "Use when rigging static 3D meshes (GLB/OBJ/FBX) with automatic skeleton + skin weights via the VAST-AI/SkinTokens Hugging Face Space (user's HF_TOKEN ZeroGPU quota). Pairs with trellis-image-to-3d — TRELLIS.2 generates static GLBs, SkinTokens rigs them for animation in Godot/Blender. Covers single and batch rigging plus the full concept-to-rigged-asset pipeline."
-version: 1.0.0
-author: Hermes Agent
+description: "Auto-rig static meshes into skinned GLBs on HF Spaces."
+version: 0.1.0
+author: Jonathan Korstad (@Jpalmer95), Hermes Agent
 license: MIT
+platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [3d, rigging, skinning, game-dev, gradio, huggingface, glb, skeleton]
-    related_skills: [trellis-image-to-3d, blender-mcp, hermes-3d-mcp, hf-gradio-3d-rig]
+    tags: [3d, rigging, skinning, game-dev, glb, gradio, huggingface]
+    related_skills: [trellis-image-to-3d, game-asset-pipeline]
 ---
 
-# SkinTokens Auto-Rigging via Hugging Face Space
+# SkinTokens Auto-Rigging Skill
 
-## Overview
-
-`VAST-AI/SkinTokens` takes a static 3D mesh (.glb/.obj/.fbx) and predicts a skeleton + skin weights, returning a rigged GLB ready for animation retargeting in Godot 4 or Blender. It needs >=14GB VRAM, so the HF Space with the user's `HF_TOKEN` (ZeroGPU quota) is the practical way to run it. This skill ships `scripts/skintokens_rig.py`, a self-contained gradio_client wrapper.
-
-The Space exposes a single endpoint (verified against `/gradio_api/info`):
-
-`/run_gradio(models, top_k=5, top_p=0.95, temperature=1.0, repetition_penalty=2.0, num_beams=10, use_existing_skeleton=False, preserve_texture_scale=False, voxel_postprocess=False, checkpoint="experiments/articulation_xl_quantization_256_token_4/grpo_1400.ckpt", hf_path="None") -> (status, rigged_glb)`
-
-`models` accepts a list of files — you can rig a few per call, but sequential single calls are more debuggable and kinder to quota.
+Predicts a skeleton and skin weights for a static mesh through the
+`VAST-AI/SkinTokens` Hugging Face Space, returning a rigged GLB ready for
+animation in Godot or Blender. Ships `scripts/skintokens_rig.py` (single and
+batch, retry with auto-escalation, resumable manifest) and its own
+`scripts/rig_gates.py`, so the skill installs and runs standalone.
+It does not animate and does not retarget — that happens in the engine.
 
 ## When to Use
 
-- After `trellis-image-to-3d` (or any other source) produced static GLBs that need skeletons/skin weights
-- User asks to "rig", "skin", or "make animatable" a 3D model
-- Don't use for: static props (rocks, houses — skip rigging), image-to-3D generation (that's trellis-image-to-3d), animation retargeting itself (do that in Godot/Blender)
+- A static GLB/OBJ/FBX needs a skeleton or skin weights ("rig this", "make it
+  animatable", "skin this model")
+- After image-to-3D generation, when the mesh must deform
+- Don't use for: static props (rocks, buildings — rigging adds nothing),
+  image-to-3D itself (`trellis-image-to-3d`), or animation retargeting (engine
+  work, or the `puppeteer-animation` skill for video-driven animation)
 
-## Setup
+## Prerequisites
 
-Same as trellis-image-to-3d: `export HF_TOKEN=***` and `pip install "gradio_client>=1.0"`. Hermes loads `.env` from the working directory — putting `HF_TOKEN=...` in the project `.env` (never committed) also works.
+- `HF_TOKEN` in the environment Hermes runs with (https://huggingface.co/settings/tokens).
+  The Space needs ≥14 GB VRAM, so anonymous queue runs fail often.
+- `pip install "gradio_client>=1.0"`.
+- Source meshes must be **full-body**. Waist-up or cropped meshes produce a
+  valid static model that SkinTokens cannot skeletonize, and no retry rescues
+  missing geometry.
 
-## Usage
+## How to Run
 
-Single asset:
+Single mesh:
+
 ```bash
-python3 scripts/skintokens_rig.py goblin.glb -o rigged/goblin_rigged.glb
+python3 <skill>/scripts/skintokens_rig.py model.glb -o rigged/model_rigged.glb --preserve-texture-scale
 ```
 
-Batch (sequential; appends status to `<out-dir>/rig_manifest.csv`):
+Batch (sequential; appends to `<out-dir>/rig_manifest.csv`):
+
 ```bash
-python3 scripts/skintokens_rig.py --batch assets/ants/glb/ -o assets/ants/rigged/
+python3 <skill>/scripts/skintokens_rig.py --batch assets/glb/ -o assets/rigged/ --preserve-texture-scale --resume
 ```
 
-Useful flags (Space defaults shown):
-- `--top-k 5 --top-p 0.95 --temperature 1.0 --rep-penalty 2.0 --beams 10` — sampling knobs; leave alone unless output is degenerate, then lower temperature (e.g. 0.7) first.
-- `--preserve-texture-scale` — keeps original UV textures and world scale; usually WANT this on for TRELLIS.2 outputs (they're already textured and reasonably scaled).
-- `--use-existing-skeleton` — only when input already has a skeleton and you just need skin weights.
-- `--voxel-postprocess` — extra cleanup pass for skin weights. **CONFIRMED RULE from live batch: models that fail with "No output files were produced" (3/10 in the ant batch: translucent ice, glossy venom, granite stone textures) succeeded on the FIRST retry with this flag enabled. If a rig fails server-side, retry with `--voxel-postprocess` before anything else.**
-- Completion: output GLB exists, opens in Blender with an Armature modifier / in Godot with a Skeleton3D node.
+`<skill>` is the `skill_dir` reported by `skill_view(name='skintokens-rigging')`.
+Both run through `terminal(command="…", timeout=…)`; a batch belongs in
+`terminal(background=true, notify_on_complete=true)`.
 
-## Full Pipeline (concept -> rigged game asset)
+## Quick Reference
 
-This is the combined trellis-image-to-3d + skintokens-rigging chain — the "10 elemental ant enemies" end-to-end recipe:
+| Flag | Effect |
+|---|---|
+| `--preserve-texture-scale` | keep the input's UVs and world scale — use it for textured image-to-3D meshes |
+| `--voxel-postprocess` | extra weight cleanup; the auto-escalation target for "No output files" |
+| `--use-existing-skeleton` | input already has a skeleton; predict weights only |
+| `--top-k/--top-p/--temperature/--rep-penalty/--beams` | sampler knobs; defaults are the Space's |
+| `--resume` | skip meshes whose `_rigged.glb` already exists |
+| `--skip-gates` | disable the rig gate |
+| `--beams` | integer; the Space rejects a float here |
 
-1. **Concepts** — `prompts.txt`, one line per asset: `"fire ant warrior, glowing ember carapace, full body T-pose front view, centered, fantasy game asset, dark background"`. T-pose-ish, full-body, uncropped silhouettes matter for BOTH generation quality and rigging quality (SkinTokens finds joints much better on spread limbs).
-2. **Images** — generate one PNG per prompt (local ComfyUI preferred, else HF image Space / image_generate). Save `images/NN_slug.png`.
-3. **Alpha-mask** — `rembg i in.png out.png` per image, or rely on TRELLIS `--preprocess`. Verify masks before spending GPU.
-4. **3D meshes** — `python3 <trellis-skill>/scripts/trellis_gen.py --batch images/ --out-root assets/ants --preprocess --keep-image` (sequential; several min/asset; run with `terminal(background=true, notify_on_complete=true)`).
-5. **Rig** — `python3 <this-skill>/scripts/skintokens_rig.py --batch assets/ants/glb/ -o assets/ants/rigged/ --preserve-texture-scale`.
-6. **Verify + import** — open a rigged GLB in Blender (check armature bones sit inside the mesh, weights deform plausibly in pose mode) or drag into Godot 4. Completion: N rigged GLBs + manifest.csv + rig_manifest.csv all consistent.
-7. **Polish/animate** — retarget animations onto the generated skeleton in Blender (`blender-mcp`) or Godot (`hermes-3d-mcp`). Auto-rigs usually need weight cleanup around thin appendages; budget a manual pass for hero characters.
+## Procedure
 
-## Common Pitfalls
+1. **Screen the inputs.** Full-body, T-pose-ish, limbs clear of the torso.
+   Completion: every mesh in the batch is a character or creature that needs
+   deformations.
+2. **Rig.** Run the batch command. Completion: one `_rigged.glb` per input and a
+   `rig_manifest.csv` row for each.
+3. **Handle failures deliberately.** "No output files were produced" on a
+   translucent, glossy, or rocky surface is a material problem — retry with
+   `--voxel-postprocess` (the script escalates on its own after the first
+   failure). The same error on a cropped source is a geometry problem and will
+   never succeed; regenerate the source image instead.
+4. **Verify deformation.** Import a rigged GLB into Blender (Armature modifier)
+   or Godot (Skeleton3D), rotate 2–3 bones. Completion: the mesh follows the
+   bones without tearing.
+5. **Clean up before shipping.** SkinTokens leaves a joint-visualisation
+   `Icosphere` mesh in the file; strip it, and budget a manual weight pass for
+   hero characters around thin appendages.
 
-1. **No HF_TOKEN** — anonymous runs hit the public queue and frequently fail on this GPU-heavy Space. Export it first.
-2. **Rigging props.** Static scenery gains nothing; only rig characters/creatures.
-3. **Tangled input poses.** Characters holding weapons across the body or with limbs touching the torso confuse joint prediction. Prefer T-pose source images upstream in TRELLIS.
-4. **Cropped/waist-up source images will NOT rig.** Confirmed live: a waist-up wizard portrait produced a valid static GLB but SkinTokens failed with "No output files" even WITH voxel-postprocess — you can't skeletonize legs that don't exist. The retry auto-escalation rescues texture/material failures, NOT missing-geometry failures. Rule: if rigging is the goal, the source image MUST be full-body. (We tried gating this via bounding-box proportions — doesn't work, wide creatures like ants are legitimately squat. No cheap geometric test; enforce it at the image prompt/review stage.)
-4. **Expecting production weights.** Auto skinning is a starting point — thin geometry (antennae, fingers, lantern handles) often needs manual weight painting.
-5. **Parallel batch calls** — ZeroGPU serializes per account; loop sequentially.
-6. **Forgetting --preserve-texture-scale on TRELLIS outputs** — without it you may lose the texture TRELLIS baked.
+## Pitfalls
 
-## Verification Checklist
+1. **Auto weights are a starting point.** Antennae, fingers, and held props
+   usually need manual weight painting before animation reads well.
+2. **Rigging props wastes quota.** Only rig what deforms.
+3. **Stray `Icosphere`.** It ships inside the GLB and shows up in engines.
+4. **Parallel calls.** ZeroGPU serializes per account; loop sequentially.
+5. **Dropping `--preserve-texture-scale`.** TRELLIS-baked textures can be lost
+   or rescaled without it.
+6. **Pose-dependent joints.** Limbs touching the torso or a weapon crossing the
+   body confuse joint prediction; fix the source pose upstream.
 
-- [ ] `HF_TOKEN` exported (or in project `.env`)
-- [ ] Output GLB contains a skeleton (Blender: Armature; Godot: Skeleton3D)
-- [ ] Skin weights deform plausibly (test a few bone rotations)
-- [ ] Batch: `rig_manifest.csv` has one row per input with status
-- [ ] Textures survived (use `--preserve-texture-scale`)
+## Verification
+
+- [ ] `rig_manifest.csv` exists with one row per input
+- [ ] Each accepted GLB parses, has a skin with >5 joints, and carries
+      `JOINTS_0`/`WEIGHTS_0`
+- [ ] One asset pose-tested in Blender or Godot
+- [ ] `Icosphere` removed from anything headed for an engine

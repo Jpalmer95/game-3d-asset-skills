@@ -1,0 +1,15 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "groupings": [
+    {
+      "title": "Image to rigged 3D asset",
+      "description": "Prompt-driven character pipeline on Hugging Face ZeroGPU: images to GLBs, auto-rigging, stage ledger, video-guided animation.",
+      "skills": [
+        "game-asset-pipeline",
+        "trellis-image-to-3d",
+        "skintokens-rigging",
+        "puppeteer-animation"
+      ]
+    }
+  ]
+}

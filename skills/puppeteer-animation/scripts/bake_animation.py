@@ -41,13 +41,15 @@ def clean(name):
     return re.sub(r"\W+", "_", name)
 
 
-def main():
-    args = parse_args()
+def parse_rig_txt(path):
+    """Return (joint_order, root_name) from a RigNet-style rig.txt.
 
-    # Joint order from rig.txt
+    The Puppeteer tensor's joint axis follows the order of the ``joints`` lines,
+    so this list is the contract between the optimizer run and the bake.
+    """
     joint_order = []
     root_name = None
-    with open(args.rig_txt) as f:
+    with open(path) as f:
         for line in f:
             parts = line.split()
             if not parts:
@@ -56,6 +58,13 @@ def main():
                 joint_order.append(parts[1])
             elif parts[0] == "root":
                 root_name = parts[1]
+    return joint_order, root_name
+
+
+def main():
+    args = parse_args()
+
+    joint_order, root_name = parse_rig_txt(args.rig_txt)
 
     # .npy preferred (Blender has numpy, not torch). If only .pt exists,
     # dump first with: python -c "import torch,numpy as np; ..." in the
@@ -112,4 +121,5 @@ def main():
     print(f"OK wrote animated GLB: {args.out} ({T} frames @ {args.fps}fps)")
 
 
-main()
+if __name__ == "__main__":
+    main()

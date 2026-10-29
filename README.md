@@ -21,6 +21,31 @@ Built around two Hugging Face Spaces:
 
 Each phase skill works standalone; the orchestrator invokes them as needed.
 
+## Install into Hermes
+
+The set is published on [skills.sh](https://skills.sh/Jpalmer95/game-3d-asset-skills), so it
+installs without cloning this repo:
+
+```bash
+hermes skills tap add Jpalmer95/game-3d-asset-skills
+hermes skills install skills-sh/Jpalmer95/game-3d-asset-skills/skills/trellis-image-to-3d
+hermes skills install skills-sh/Jpalmer95/game-3d-asset-skills/skills/skintokens-rigging
+hermes skills install skills-sh/Jpalmer95/game-3d-asset-skills/skills/game-asset-pipeline
+```
+
+`puppeteer-animation` is separate because it needs a local CUDA GPU and a patched
+[Seed3D/Puppeteer](https://github.com/Seed3D/Puppeteer) checkout — install it only if
+`nvidia-smi` shows ≥12 GB:
+
+```bash
+hermes skills install skills-sh/Jpalmer95/game-3d-asset-skills/skills/puppeteer-animation
+```
+
+The same skills are proposed for the official optional catalog
+(`official/gaming/<name>`) in NousResearch/hermes-agent#146590 and #146593; until those
+land, the tap above is the install path. skills.sh re-indexes after a push, so a fresh
+edit can take a little while to show up.
+
 ## Edit any stage
 
 The chain is not a one-shot. `scripts/asset_stage.py` writes a `project.json`

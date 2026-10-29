@@ -1,84 +1,153 @@
 ---
 name: puppeteer-animation
-description: "Use when animating a rigged 3D mesh (GLB with skeleton + skin weights, e.g. SkinTokens output) with a driving video via Seed3D/Puppeteer video-guided optimization. Works on ANY rigged asset (quadrupeds, creatures, articulated props), not just humanoids. Pairs with skintokens-rigging (produces the rig) and trellis-image-to-3d (produces the mesh). Runs locally on a 12GB GPU with the settings in this skill."
-version: 1.0.0
-author: Hermes Agent
+description: "Animate a rigged GLB from a driving video on a local GPU."
+version: 0.1.0
+author: Jonathan Korstad (@Jpalmer95), Hermes Agent
 license: MIT
+platforms: [linux]
 metadata:
   hermes:
-    tags: [3d, animation, video-guided, game-dev, puppeteer, optimization, glb, skeleton]
-    related_skills: [skintokens-rigging, trellis-image-to-3d, game-asset-pipeline, blender-mcp, hermes-3d-mcp]
+    tags: [3d, animation, video-guided, game-dev, glb, skeleton, puppeteer, blender]
+    related_skills: [comfyui]
 ---
 
-# Puppeteer Video-Guided Animation (local)
+# Puppeteer Video-Guided Animation Skill
 
-## Overview
+Drives `Seed3D/Puppeteer` (Apache-2.0, NeurIPS 2025) to fit a short video onto an
+already-rigged mesh: it optimises per-frame joint rotations and root translation
+until the skinned render matches the clip, then bakes the result onto the GLB's
+armature in Blender. Works for **any** skeleton topology — quadrupeds, insects,
+dragons, articulated props — unlike SMPL-only text-to-motion models.
+It does not rig, generate the mesh, or retarget between skeletons — the
+sibling `skintokens-rigging` and `trellis-image-to-3d` skills produce its input,
+and `game-asset-pipeline` chains them.
 
-`Seed3D/Puppeteer` (NeurIPS 2025 Spotlight, Apache-2.0) takes a rigged mesh + a short driving video and optimizes per-frame skeletal joint rotations (quaternions) + root translation so the skinned mesh's rendered motion matches the video. Unlike text-to-motion models (MotionGPT/MDM — SMPL humanoid only), this works for **any skeleton topology**: quadrupeds, insects, dragons, articulated props.
+This is the heaviest skill of the set: ~12 GB of checkpoints, a patched upstream
+clone, a CUDA build of PyTorch, and a 12 GB GPU. Budget an hour for setup.
 
-Pipeline: rigged GLB → convert to RigNet rig.txt + mesh.obj (Blender) → driving video (image-to-video of a rendered first frame, or any clip) → precompute optical flow (dpflow), depth (Video-Depth-Anything), 2D tracks (CoTracker3) → optimization loop → raw motion tensors → bake keyframes onto the GLB armature in Blender → animated GLB for Godot.
+## When to Use
 
-## Setup (one time, ~15 min + ~12GB checkpoints)
+- A rigged GLB needs motion and no animation clip exists for its skeleton
+- "Make this creature walk / attack / fly", driven by a reference clip
+- Non-humanoid or custom-topology rigs where a retarget library has nothing
+- Don't use for: humanoid-only retargeting from Mixamo-style libraries (direct
+  retarget in Blender/Godot is cheaper), rigging, or mesh generation
+
+## Prerequisites
+
+- Linux, an NVIDIA GPU with 12 GB (24 GB removes most of the tuning), Blender
+  3.6+, ffmpeg.
+- A clone of `Seed3D/Puppeteer` and a working venv (below). `PUPPETEER_DIR`
+  points at it, or pass `--puppeteer` per run.
+- Checkpoints: `animation/download.py` (CoTracker3 + Video-Depth-Anything-Large).
+  The `skeleton/` and `skinning/` checkpoints are only needed for Puppeteer's own
+  rigging, which this skill does not use.
+
+Build the environment (order matters — `setuptools<81` and `cython` must exist
+before `requirements.txt`, or the `tetgen`/`flash-attn` builds fail):
 
 ```bash
-cd ~/dev && git clone https://github.com/Seed3D/Puppeteer.git --recursive && cd Puppeteer
-uv venv --python 3.10 .venv && source .venv/bin/activate
+git clone https://github.com/Seed3D/Puppeteer.git --recursive "$PUPPETEER_DIR"
+cd "$PUPPETEER_DIR"
+uv venv --python 3.10 .venv && . .venv/bin/activate
 uv pip install torch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 --index-url https://download.pytorch.org/whl/cu118
-uv pip install setuptools wheel "setuptools<81" cython==0.29.36   # BEFORE requirements (tetgen/flash-attn build deps)
+uv pip install "setuptools<81" wheel cython==0.29.36
 uv pip install -r requirements.txt
 uv pip install flash-attn==2.6.3 --no-build-isolation
 uv pip install torch-scatter -f https://data.pyg.org/whl/torch-2.1.1+cu118.html
 uv pip install --no-index --no-cache-dir pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu118_pyt211/download.html
 ```
 
-Checkpoints (run each module's `download.py`, BUT see pitfalls 4/5):
-- `animation/download.py` → CoTracker3 (98M) + Video-Depth-Anything-Large (1.5G)
-- `skeleton/download.py` + `skinning/download.py` → only needed if you ALSO want Puppeteer's own rigging (we normally use SkinTokens instead).
+Two upstream patches make a 12 GB card viable (they live in the reference fork;
+reapply on a fresh clone): skip the depth module when `depth/depth_gt_raw.pt`
+already exists, and resize loaded frames to `--img-size`.
 
-**Required patches** (already applied in the user's `~/dev/Puppeteer`; reapply on a fresh clone):
-1. `animation/optimization.py` — skip `DepthModule` load when `depth/depth_gt_raw.pt` cache exists (saves 1.5GB VRAM; enables 12GB cards). Companion: `precompute_depth.py` at repo root runs VDA standalone.
-2. Frame loader resizes to `--img_size` (upstream assumes extracted frames already match).
+## How to Run
 
-## Usage
-
-Full run on a rigged GLB:
 ```bash
-python3 scripts/puppeteer_animate.py goblin_rigged.glb --video goblin_walk.mp4 \
-    --puppeteer ~/dev/Puppeteer -o working/goblin/ --iter 500
+python3 <skill>/scripts/puppeteer_animate.py goblin_rigged.glb --video goblin_walk.mp4 \
+    --puppeteer "$PUPPETEER_DIR" -o working/goblin/ --iter 500 --img-size 512 --decimate 20000
 ```
 
-Then bake to an animated GLB:
+Then bake the fitted motion onto the rig:
+
 ```bash
-blender -b --factory-startup -noaudio --python scripts/bake_animation.py -- \
+blender -b --factory-startup -noaudio --python <skill>/scripts/bake_animation.py -- \
     goblin_rigged.glb --rig-txt working/goblin/objs/rig.txt \
-    --results-dir working/goblin/results/goblin_anim/raw/ \
-    --fps 10 -o goblin_animated.glb
+    --results-dir working/goblin/results/goblin_anim/raw/ --fps 10 -o goblin_animated.glb
 ```
 
-Getting the driving video (the "AI animation" front-end):
-1. Render first frames: `cd ~/dev/Puppeteer/animation && PYTHONPATH=. python utils/render_first_frame.py --input_path <dir-containing-seq> --seq_name <name>` → 4 viewpoint PNGs.
-2. Pick the view that shows joints best, animate it with image-to-video (local ComfyUI, or FAL pixverse — cheap, 4-8s clip, e.g. "the ant walks forward, legs stepping"). Save as `input.mp4` in the seq dir.
+`<skill>` is the `skill_dir` from `skill_view(name='puppeteer-animation')`.
+A 500-iteration run is minutes-per-second-of-video, not real time — launch it
+with `terminal(background=true, notify_on_complete=true)` and batch overnight.
 
-Useful flags: `--iter 200` = draft (~13 min on 4070 Ti), `--iter 500` = final. `--main-renderer front_left --additional-renderers "right,front_right,back_right"` for 3/4 views. `--smooth-weight 1` for organic creatures.
+## Quick Reference
 
-## Pitfalls (all hit live on a 4070 Ti 12GB)
+| Flag | Effect |
+|---|---|
+| `--iter 200` / `--iter 500` | draft (~13 min on a 4070 Ti) / final |
+| `--img-size 512` | 512 keeps peak VRAM near 8 GB; 960 needs >12 GB |
+| `--decimate 20000` | face target during GLB→RigNet conversion; required for TRELLIS meshes |
+| `--skip-convert` / `--skip-precompute` | resume from prepared `objs/` or `imgs/` |
+| `--main-renderer front_left` `--additional-renderers "right,back"` | which views get rendered for review |
+| `--smooth-weight 1` | steadier motion for organic creatures |
+| `--fps 10` | frame rate for extraction and bake; keep ≤4 s of video (40 frames) |
 
-1. **OOM: optimization at img_size 960 needs >12GB.** Use `--img-size 512` (peak ~8GB) AND precompute depth standalone. If still OOM, check for stale GPU processes (`nvidia-smi`).
-2. **Resolution mismatch crashes.** Puppeteer caches flow/track/depth at the resolution of `imgs/*.png` and NEVER resizes them. Extract frames with `scale=W:W` in ffmpeg (the wrapper does this). If you change `--img-size`, delete `imgs flow flow_vis track_2d_joints track_2d_verts depth` in the seq dir and re-run.
-3. **`ModuleNotFoundError: No module named 'third_partys'`** — run everything with `PYTHONPATH=.` from `animation/` (wrapper handles it).
-4. **hf-xet silently drops large downloads** (transfers vanish). Verify with `ls`; if missing, `HF_HUB_DISABLE_XET=1` and re-run, or `hf_hub_download` directly.
-5. **skinning/download.py nests checkpoints** at `skinning/skinning/skinning_ckpts/` — move up one level. (Only matters for Puppeteer's own rigging.)
-6. **tetgen/flash-attn build failures** — install `setuptools<81 wheel cython==0.29.36` into the venv BEFORE `requirements.txt`; setuptools 83+ removed pkg_resources which flash-attn's setup.py imports.
-7. **Optimization is minutes-per-animation, not seconds** (~5s/iter at 384px on 4070 Ti). Batch overnight; use `terminal(background=true, notify_on_complete=true)`.
-8. Garbage video in = garbage motion out. The driving video must keep the whole asset in frame, roughly match the rest pose's camera angle, and show the motion from ONE dominant viewpoint.
-9. **TRELLIS meshes (250k+ faces) OOM the optimization loop** — memory scales with VERTEX count (pytorch3d rasterizer + tracking), not img_size. Measured on 12GB: 204k verts OOM at tracking, 68k verts OOM at rasterization, 31k verts runs at ~11.6GB peak. Rule: pass `--decimate 20000` (faces) to glb_to_rignet.py for TRELLIS outputs; ≤10k-face meshes are comfortable at img_size 512.
-10. **Never decimate the OBJ externally after rig.txt is written** — skin weights index vertices positionally. Decimate in glb_to_rignet.py (Blender keeps vertex groups) or redo the whole conversion.
-11. **video_generate / FAL needs a public URL for local first-frame PNGs.** 0x0.st and tmpfiles are dead/redirect-looping; working path: `python3 -m http.server 8899` + `cloudflared tunnel --url http://127.0.0.1:8899` (free, no account) → pass the trycloudflare URL. Tailscale funnel is disabled on our tailnet.
-12. Keep driving videos ≤4s @ 10fps (40 frames). 50 frames pushed CoTracker3 offline over the edge at 512px.
+Outputs: `objs/rig.txt` + `objs/mesh.obj`, `imgs/`, flow/depth/track caches,
+`results/<seq>_anim/raw/{local_quats,root_pos}.pt` (convert to `.npy` for the
+bake — Blender ships numpy, not torch).
 
-## Verification Checklist
+## Procedure
 
-- [ ] `results/<seq>/<name>/raw/{local_quats,root_quats,root_pos}.pt` exist
-- [ ] `front_left.mp4` (and additional views) render without OOM
-- [ ] Rendered motion visibly tracks the input video (watch side by side)
-- [ ] Baked GLB plays in Blender timeline / Godot AnimationPlayer
+1. **Start from a rigged mesh.** Full-body, sensible rest pose, textures intact.
+   Completion: the GLB opens with an armature and skin weights.
+2. **Convert to RigNet layout.** `glb_to_rignet.py` runs inside Blender and bakes
+   world transforms so joints and vertices share one frame. Completion:
+   `objs/rig.txt` and `objs/mesh.obj` exist and the OBJ opens with the same
+   silhouette.
+3. **Produce the driving video.** Render first-frame views
+   (`animation/utils/render_first_frame.py`), pick the view that shows joints
+   best, and animate it with an image-to-video model (local ComfyUI, or a hosted
+   one — a public URL is needed for local stills). Keep it ≤4 s, one dominant
+   viewpoint, whole asset in frame. Completion: `input.mp4` looks like the motion
+   you want, from an angle close to the rest pose camera.
+4. **Fit.** Run `puppeteer_animate.py` at `--img-size 512`. Completion:
+   `results/<seq>_anim/raw/local_quats.pt` and `root_pos.pt` exist and the
+   rendered review clips show the motion tracking the video.
+5. **Bake and import.** Run `bake_animation.py`, then open the animated GLB in
+   Blender's timeline or Godot's AnimationPlayer. Completion: the clip plays and
+   the mesh does not tear.
+
+## Pitfalls
+
+1. **OOM at `--img-size 960`.** Use 512 and precompute depth standalone so the
+   1.5 GB depth model is freed before optimization.
+2. **Resolution mismatch crashes.** Flow/track/depth caches take the resolution
+   of `imgs/*.png` and upstream never resizes them. Change `--img-size` and you
+   must delete `imgs flow flow_vis track_2d_joints track_2d_verts depth` and
+   re-run.
+3. **`ModuleNotFoundError: third_partys`.** Run from `animation/` with
+   `PYTHONPATH=.` — the wrapper does this; hand-run commands must too.
+4. **`hf-xet` silently drops large downloads.** Verify the checkpoint files
+   exist; if not, re-run with `HF_HUB_DISABLE_XET=1`.
+5. **`tetgen`/`flash-attn` build failures.** Install `setuptools<81`, `wheel`,
+   `cython==0.29.36` before `requirements.txt`.
+6. **Vertex count, not image size, is the memory wall.** Measured on 12 GB:
+   ~204k verts OOMs during tracking, ~68k during rasterization, ~31k runs at
+   ~11.6 GB peak. Decimate TRELLIS output to ~20k faces during conversion.
+7. **Never decimate the OBJ after `rig.txt` is written.** Skin weights index
+   vertices positionally; decimate inside `glb_to_rignet.py` (Blender keeps the
+   vertex groups) or redo the conversion.
+8. **Baking needs `.npy`.** Convert the `.pt` tensors in the Puppeteer venv
+   first; Blender's Python has numpy but not torch.
+9. **Long clips destabilize tracking.** 40 frames at 512 px is the reliable
+   envelope; 50 frames pushed CoTracker3 off the edge in testing.
+10. **Garbage in, garbage motion out.** A clip that loses the subject, changes
+    camera angle mid-shot, or shows two competing motions will fit badly.
+
+## Verification
+
+- [ ] `results/<seq>_anim/raw/{local_quats,root_pos}` exist (`.npy` for the bake)
+- [ ] Review renders exist for the main and additional views, no OOM
+- [ ] Rendered motion visibly tracks the driving video, watched side by side
+- [ ] Baked GLB plays in Blender or Godot and the mesh does not tear
