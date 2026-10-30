@@ -19,7 +19,7 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 STAGES = ("prompt", "image", "mask", "mesh", "rig", "animation")
@@ -55,6 +55,7 @@ def pipeline_python() -> str:
                 [cand, "-c", "import gradio_client"],
                 capture_output=True,
                 timeout=30,
+                check=False,
             )
         except (OSError, subprocess.TimeoutExpired):
             continue
@@ -66,7 +67,7 @@ def pipeline_python() -> str:
 
 
 def now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def sha256(path: Path) -> str:
@@ -524,8 +525,6 @@ def cmd_status(args) -> None:
         asset = project["assets"].get(slug)
         if not asset:
             sys.exit(f"unknown slug {slug}")
-        flags = " ".join(f"{s[0].upper() if asset['stages'][s]['status']=='ok' else s[0].lower()}{s[0]}" for s in STAGES)
-        # clearer: one letter per stage
         letters = []
         for s in STAGES:
             status = asset["stages"][s]["status"]
@@ -575,13 +574,13 @@ def cmd_run(args) -> None:
         print(" ".join(step["cmd"]), flush=True)
         if args.dry_run:
             continue
-        proc = subprocess.run(step["cmd"])
+        proc = subprocess.run(step["cmd"], check=False)
         if proc.returncode != 0 and step["stage"] == "rig":
             # Translucent/glossy/rocky textures fail the default SkinTokens path.
             # Confirmed on the 10-ant dogfood: --voxel-postprocess rescued them.
             retry = step["cmd"] + ["--voxel-postprocess"]
             print("rig failed; retrying with --voxel-postprocess", flush=True)
-            proc = subprocess.run(retry)
+            proc = subprocess.run(retry, check=False)
         if proc.returncode != 0:
             sys.exit(f"{step['stage']} failed with exit {proc.returncode}")
         dest = canonical(root, args.slug, step["stage"])

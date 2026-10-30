@@ -36,7 +36,7 @@ def gate_alpha_mask(path, min_alpha_coverage=0.05, max_alpha_coverage=0.98):
 
 def _parse_glb_json(path):
     with open(path, "rb") as f:
-        magic, version, _length = struct.unpack("<III", f.read(12))
+        magic, _version, _length = struct.unpack("<III", f.read(12))
         if magic != 0x46546C67:
             raise ValueError("not a GLB (bad magic)")
         chunk_len, chunk_type = struct.unpack("<II", f.read(8))

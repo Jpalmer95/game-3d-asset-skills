@@ -85,9 +85,10 @@ def main():
 
     rig_path = os.path.join(objs_dir, "rig.txt")
     with open(rig_path, "w") as f:
-        for name, j in joints.items():
-            f.write(f"joints {clean(name)} {j['pos'][0]:.8f} {j['pos'][1]:.8f} "
-                    f"{j['pos'][2]:.8f}\n")
+        f.writelines(
+            f"joints {clean(name)} {j['pos'][0]:.8f} {j['pos'][1]:.8f} {j['pos'][2]:.8f}\n"
+            for name, j in joints.items()
+        )
         f.write(f"root {clean(root)}\n")
 
         vert_offset = 0
